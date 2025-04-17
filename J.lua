@@ -239,7 +239,14 @@ function Gghiza07UI:CreateWindow(config)
             if success and data then
                 print("Background file contents: " .. tostring(data))
                 if data:match("^rbxassetid://%d+$") then
-                    return data
+                    local success, asset = pcall(function()
+                        return AssetService:GetAssetThumbnailAsync(data, Enum.ThumbnailType.Asset, Enum.ThumbnailSize.Size420x420)
+                    end)
+                    if success then
+                        return data
+                    else
+                        warn("Failed to load background asset: " .. tostring(asset))
+                    end
                 else
                     warn("Invalid background image asset ID format: " .. tostring(data))
                 end
@@ -273,7 +280,14 @@ function Gghiza07UI:CreateWindow(config)
             if success and data then
                 print("Video file contents: " .. tostring(data))
                 if data:match("^rbxassetid://%d+$") then
-                    return data
+                    local success, asset = pcall(function()
+                        return AssetService:GetAssetThumbnailAsync(data, Enum.ThumbnailType.Asset, Enum.ThumbnailSize.Size420x420)
+                    end)
+                    if success then
+                        return data
+                    else
+                        warn("Failed to load video asset: " .. tostring(asset))
+                    end
                 else
                     warn("Invalid video asset ID format: " .. tostring(data))
                 end
@@ -304,18 +318,31 @@ function Gghiza07UI:CreateWindow(config)
 
     local backgroundImageId = loadBackgroundImage()
     if backgroundImageId ~= "" then
-        backgroundImage.Image = backgroundImageId
-        print("Applied background image: " .. backgroundImageId)
+        local success, err = pcall(function()
+            backgroundImage.Image = backgroundImageId
+        end)
+        if success then
+            print("Applied background image: " .. backgroundImageId)
+        else
+            warn("Failed to apply background image: " .. tostring(err))
+        end
     else
         warn("No valid background image ID found; using default (none).")
     end
 
     local videoId = loadVideo()
     if videoId ~= "" then
-        videoFrame.Video = videoId
-        videoFrame.Visible = true
-        videoFrame:Play()
-        print("Applied video: " .. videoId)
+        local success, err = pcall(function()
+            videoFrame.Video = videoId
+            videoFrame.Visible = true
+            videoFrame:Play()
+        end)
+        if success then
+            print("Applied video: " .. videoId)
+        else
+            warn("Failed to apply video: " .. tostring(err))
+            videoFrame.Visible = false
+        end
     else
         warn("No valid video ID found; video not played.")
     end
@@ -337,7 +364,7 @@ function Gghiza07UI:CreateWindow(config)
         corner.Parent = tabButton
 
         local tabContent = Instance.new("ScrollingFrame")
-   tabContent.Size = UDim2.new(1, -20, 1, -110)
+        tabContent.Size = UDim2.new(1, -20, 1, -110)
         tabContent.Position = UDim2.new(0, 10, 0, 110)
         tabContent.BackgroundTransparency = 1
         tabContent.CanvasSize = UDim2.new(0, 0, 2, 0)
@@ -459,7 +486,18 @@ function Gghiza07UI:CreateWindow(config)
                 saveToggleStates()
 
                 if toggleConfig.Callfunction then
-                    toggleConfig.Callfunction(isToggled)
+                    if typeof(toggleConfig.Callfunction) == "function" then
+                        local success, err = pcall(function()
+                            toggleConfig.Callfunction(isToggled)
+                        end)
+                        if not success then
+                            warn("Error calling Callfunction for toggle " .. tostring(toggleFlag) .. ": " .. tostring(err))
+                        end
+                    else
+                        warn("Callfunction for toggle " .. tostring(toggleFlag) .. " is not a function, got: " .. typeof(toggleConfig.Callfunction))
+                    end
+                else
+                    print("No Callfunction defined for toggle: " .. tostring(toggleFlag))
                 end
             end
 
@@ -498,7 +536,18 @@ function Gghiza07UI:CreateWindow(config)
 
             local function activate()
                 if buttonConfig.Callback then
-                    buttonConfig.Callback()
+                    if typeof(buttonConfig.Callback) == "function" then
+                        local success, err = pcall(function()
+                            buttonConfig.Callback()
+                        end)
+                        if not success then
+                            warn("Error calling Callback for button " .. tostring(buttonConfig.Name) .. ": " .. tostring(err))
+                        end
+                    else
+                        warn("Callback for button " .. tostring(buttonConfig.Name) .. " is not a function, got: " .. typeof(buttonConfig.Callback))
+                    end
+                else
+                    print("No Callback defined for button: " .. tostring(buttonConfig.Name))
                 end
             end
 
@@ -588,7 +637,16 @@ function Gghiza07UI:CreateWindow(config)
                         saveToggleStates()
                         dropdownList.Visible = false
                         if dropdownConfig.Callback then
-                            dropdownConfig.Callback(selectedOption)
+                            if typeof(dropdownConfig.Callback) == "function" then
+                                local success, err = pcall(function()
+                                    dropdownConfig.Callback(selectedOption)
+                                end)
+                                if not success then
+                                    warn("Error calling Callback for dropdown " .. tostring(dropdownFlag) .. ": " .. tostring(err))
+                                end
+                            else
+                                warn("Callback for dropdown " .. tostring(dropdownFlag) .. " is not a function, got: " .. typeof(dropdownConfig.Callback))
+                            end
                         end
                     end)
 
@@ -650,7 +708,16 @@ function Gghiza07UI:CreateWindow(config)
                     toggleStates[inputFlag] = textBox.Text
                     saveToggleStates()
                     if inputConfig.Callback then
-                        inputConfig.Callback(textBox.Text)
+                        if typeof(inputConfig.Callback) == "function" then
+                            local success, err = pcall(function()
+                                inputConfig.Callback(textBox.Text)
+                            end)
+                            if not success then
+                                warn("Error calling Callback for input " .. tostring(inputFlag) .. ": " .. tostring(err))
+                            end
+                        else
+                            warn("Callback for input " .. tostring(inputFlag) .. " is not a function, got: " .. typeof(inputConfig.Callback))
+                        end
                     end
                 end
             end)
@@ -725,7 +792,16 @@ function Gghiza07UI:CreateWindow(config)
                 toggleStates[sliderFlag] = currentValue
                 saveToggleStates()
                 if sliderConfig.Callback then
-                    sliderConfig.Callback(currentValue)
+                    if typeof(sliderConfig.Callback) == "function" then
+                        local success, err = pcall(function()
+                            sliderConfig.Callback(currentValue)
+                        end)
+                        if not success then
+                            warn("Error calling Callback for slider " .. tostring(sliderFlag) .. ": " .. tostring(err))
+                        end
+                    else
+                        warn("Callback for slider " .. tostring(sliderFlag) .. " is not a function, got: " .. typeof(sliderConfig.Callback))
+                    end
                 end
             end
 
@@ -768,9 +844,16 @@ function Gghiza07UI:CreateWindow(config)
                 Default = "",
                 Callback = function(value)
                     if value:match("^rbxassetid://%d+$") then
-                        backgroundImage.Image = value
-                        saveBackgroundImage(value)
-                        videoFrame.Visible = false
+                        local success, err = pcall(function()
+                            backgroundImage.Image = value
+                        end)
+                        if success then
+                            saveBackgroundImage(value)
+                            videoFrame.Visible = false
+                            print("Applied background image: " .. value)
+                        else
+                            warn("Failed to apply background image: " .. tostring(err))
+                        end
                     else
                         warn("Invalid image asset ID format. Use rbxassetid://[Number]")
                     end
@@ -787,17 +870,23 @@ function Gghiza07UI:CreateWindow(config)
                     if value:match("^%d+$") then
                         local success, imageId = pcall(function()
                             local assetInfo = game:GetService("MarketplaceService"):GetProductInfo(tonumber(value))
-                            if assetInfo.AssetTypeId == 13 then -- 13 is for Decals
+                            if assetInfo.AssetTypeId == 13 then
                                 return "rbxassetid://" .. assetInfo.AssetId
                             else
                                 return nil
                             end
                         end)
                         if success and imageId then
-                            backgroundImage.Image = imageId
-                            saveBackgroundImage(imageId)
-                            videoFrame.Visible = false
-                            print("Applied background from Decal Item ID: " .. imageId)
+                            local applySuccess, applyErr = pcall(function()
+                                backgroundImage.Image = imageId
+                            end)
+                            if applySuccess then
+                                saveBackgroundImage(imageId)
+                                videoFrame.Visible = false
+                                print("Applied background from Decal Item ID: " .. imageId)
+                            else
+                                warn("Failed to apply background from Decal: " .. tostring(applyErr))
+                            end
                         else
                             warn("Invalid Decal Item ID or not a Decal: " .. value)
                         end
@@ -815,12 +904,19 @@ function Gghiza07UI:CreateWindow(config)
                 Default = "",
                 Callback = function(value)
                     if value:match("^rbxassetid://%d+$") then
-                        videoFrame.Video = value
-                        saveVideo(value)
-                        videoFrame.Visible = true
-                        videoFrame:Play()
-                        backgroundImage.Image = ""
-                        print("Playing video: " .. value)
+                        local success, err = pcall(function()
+                            videoFrame.Video = value
+                            videoFrame.Visible = true
+                            videoFrame:Play()
+                        end)
+                        if success then
+                            saveVideo(value)
+                            backgroundImage.Image = ""
+                            print("Playing video: " .. value)
+                        else
+                            warn("Failed to play video: " .. tostring(err))
+                            videoFrame.Visible = false
+                        end
                     else
                         warn("Invalid video asset ID format. Use rbxassetid://[Number]")
                     end
@@ -833,8 +929,18 @@ function Gghiza07UI:CreateWindow(config)
 
     for _, toggle in ipairs(toggles) do
         if toggle.isToggled and toggle.callfunction then
-            toggle.callfunction(true)
-            print("Triggered Callfunction for toggle on load: " .. tostring(toggle.isToggled))
+            if typeof(toggle.callfunction) == "function" then
+                local success, err = pcall(function()
+                    toggle.callfunction(true)
+                end)
+                if success then
+                    print("Triggered Callfunction for toggle on load: " .. tostring(toggle.isToggled))
+                else
+                    warn("Error triggering Callfunction on load: " .. tostring(err))
+                end
+            else
+                warn("Callfunction for toggle on load is not a function, got: " .. typeof(toggle.callfunction))
+            end
         end
     end
 
