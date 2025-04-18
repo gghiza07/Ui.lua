@@ -1,0 +1,520 @@
+local Gghiza07UI = {}
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local HttpService = game:GetService("HttpService")
+local ContentProvider = game:GetService("ContentProvider")
+local player = game.Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+function Gghiza07UI:CreateWindow(config)
+    local window = {}
+    print("Creating window:", config.Name, "Version: Fixed Background Size")
+
+    local SETTINGS_FOLDER = "storage/" .. (config.Name or "Gghiza07UI")
+    local SETTINGS_FILE = SETTINGS_FOLDER .. "/settingsconfig.rfld"
+    local BACKGROUND_FILE = SETTINGS_FOLDER .. "/background"
+
+    local existingScreenGui = playerGui:FindFirstChild(config.Name or "Gghiza07UI")
+    if existingScreenGui then
+        existingScreenGui:Destroy()
+    end
+
+    local existingToggleGui = playerGui:FindFirstChild("ToggleGui")
+    if existingToggleGui then
+        existingToggleGui:Destroy()
+    end
+
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Name = config.Name or "Gghiza07UI"
+    screenGui.Parent = playerGui
+    screenGui.Enabled = true
+    screenGui.DisplayOrder = 1000
+    screenGui.IgnoreGuiInset = true
+    screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Global
+    print("ScreenGui created:", screenGui.Name)
+
+    local mainContent = Instance.new("Frame")
+    mainContent.Size = UDim2.new(0.7, 0, 0.7, 0)
+    mainContent.Position = UDim2.new(0.15, 0, 0.15, 0)
+    mainContent.BackgroundTransparency = 1
+    mainContent.ZIndex = 20
+    mainContent.Parent = screenGui
+    print("mainContent setup - Size:", mainContent.Size, "Position:", mainContent.Position)
+
+    local backgroundImage = Instance.new("ImageLabel")
+    backgroundImage.Size = UDim2.new(1, 0, 1, 0)
+    backgroundImage.Position = UDim2.new(0, 0, 0, 0)
+    backgroundImage.BackgroundTransparency = 1
+    backgroundImage.ImageTransparency = 0
+    backgroundImage.ZIndex = 10
+    backgroundImage.ScaleType = Enum.ScaleType.Stretch
+    backgroundImage.Parent = mainContent
+    print("backgroundImage setup - Parent:", backgroundImage.Parent.Name, "Size:", backgroundImage.Size, "ZIndex:", backgroundImage.ZIndex)
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 10)
+    corner.Parent = mainContent
+    corner:Clone().Parent = backgroundImage
+
+    local titleLabel = Instance.new("TextLabel")
+    titleLabel.Size = UDim2.new(0, 200, 0, 30)
+    titleLabel.Position = UDim2.new(0, 10, 0, 10)
+    titleLabel.BackgroundTransparency = 1
+    titleLabel.Text = config.Name or "Gghiza07UI"
+    titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+    titleLabel.TextScaled = true
+    titleLabel.ZIndex = 21
+    titleLabel.Parent = mainContent
+
+    local draggingUI = false
+    local dragInput
+    local dragStart
+    local startPos
+
+    mainContent.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            draggingUI = true
+            dragStart = input.Position
+            startPos = mainContent.Position
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    draggingUI = false
+                end
+            end)
+        end
+    end)
+
+    mainContent.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+            dragInput = input
+        end
+    end)
+
+    UserInputService.InputChanged:Connect(function(input)
+        if input == dragInput and draggingUI then
+            local delta = input.Position - dragStart
+            mainContent.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+            print("Dragging UI - mainContent Position:", mainContent.Position, "backgroundImage Parent:", backgroundImage.Parent.Name)
+        end
+    end)
+
+    local tabsFrame = Instance.new("Frame")
+    tabsFrame.Size = UDim2.new(1, -20, 0, 60)
+    tabsFrame.Position = UDim2.new(0, 10, 0, 50)
+    tabsFrame.BackgroundColor3 = Color3.fromRGB(42, 42, 42)
+    tabsFrame.ZIndex = 21
+    tabsFrame.Parent = mainContent
+
+    local cornerTabs = Instance.new("UICorner")
+    cornerTabs.CornerRadius = UDim.new(0, 5)
+    cornerTabs.Parent = tabsFrame
+
+    local toggleGui = Instance.new("ScreenGui")
+    toggleGui.Name = "ToggleGui"
+    toggleGui.Parent = playerGui
+    toggleGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    toggleGui.DisplayOrder = 1001
+
+    local toggleButton = Instance.new("TextButton")
+    toggleButton.Size = UDim2.new(0, 50, 0, 50)
+    toggleButton.Position = UDim2.new(0, 10, 1, -60)
+    toggleButton.BackgroundColor3 = Color3.fromRGB(0, 123, 255)
+    toggleButton.Text = "ON"
+    toggleButton.TextScaled = true
+    toggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    toggleButton.ZIndex = 102
+    toggleButton.Parent = toggleGui
+
+    local cornerToggle = Instance.new("UICorner")
+    cornerToggle.CornerRadius = UDim.new(0, 15)
+    cornerToggle.Parent = toggleButton
+
+    local draggingToggle = false
+    local toggleDragInput
+    local toggleDragStart
+    local toggleStartPos
+
+    toggleButton.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            draggingToggle = true
+            toggleDragStart = input.Position
+            toggleStartPos = toggleButton.Position
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    draggingToggle = false
+                end
+            end)
+        end
+    end)
+
+    toggleButton.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+            toggleDragInput = input
+        end
+    end)
+
+    UserInputService.InputChanged:Connect(function(input)
+        if input == toggleDragInput and draggingToggle then
+            local delta = input.Position - toggleDragStart
+            toggleButton.Position = UDim2.new(toggleStartPos.X.Scale, toggleStartPos.X.Offset + delta.X, toggleStartPos.Y.Scale, toggleStartPos.Y.Offset + delta.Y)
+        end
+    end)
+
+    local function toggleUI()
+        screenGui.Enabled = not screenGui.Enabled
+        if screenGui.Enabled then
+            toggleButton.BackgroundColor3 = Color3.fromRGB(0, 123, 255)
+            toggleButton.Text = "ON"
+        else
+            toggleButton.BackgroundColor3 = Color3.fromRGB(200, 200, 200)
+            toggleButton.Text = "OFF"
+        end
+    end
+
+    toggleButton.MouseButton1Click:Connect(toggleUI)
+    toggleButton.TouchTap:Connect(toggleUI)
+
+    local tabList = {}
+    local toggles = {}
+
+    local saveSettings = config.SaveSetting or false
+    local toggleStates = {}
+
+    local function ensureFolderExists()
+        if not isfolder(SETTINGS_FOLDER) then
+            makefolder(SETTINGS_FOLDER)
+        end
+    end
+
+    local function loadToggleStates()
+        ensureFolderExists()
+        if isfile(SETTINGS_FILE) then
+            local success, data = pcall(function()
+                return HttpService:JSONDecode(readfile(SETTINGS_FILE))
+            end)
+            if success then
+                return data
+            end
+        end
+        return {}
+    end
+
+    local function saveToggleStates()
+        if saveSettings then
+            ensureFolderExists()
+            local success, err = pcall(function()
+                writefile(SETTINGS_FILE, HttpService:JSONEncode(toggleStates))
+            end)
+            if not success then
+                warn("Failed to save toggle states:", err)
+            end
+        end
+    end
+
+    local function loadBackgroundImage()
+        ensureFolderExists()
+        if isfile(BACKGROUND_FILE) then
+            local success, data = pcall(function()
+                return readfile(BACKGROUND_FILE)
+            end)
+            if success and data:match("^rbxassetid://%d+$") then
+                return data
+            end
+        end
+        return ""
+    end
+
+    local function saveBackgroundImage(imageId)
+        ensureFolderExists()
+        local success, err = pcall(function()
+            writefile(BACKGROUND_FILE, imageId)
+        end)
+        if not success then
+            warn("Failed to save background image:", err)
+        end
+    end
+
+    if saveSettings then
+        toggleStates = loadToggleStates()
+    end
+
+    local function preloadImage(imageId)
+        local success, err = pcall(function()
+            ContentProvider:PreloadAsync({imageId})
+        end)
+        if success then
+            print("Preloaded image:", imageId)
+        else
+            warn("Failed to preload image:", imageId, err)
+        end
+        return success
+    end
+
+    local backgroundImageId = loadBackgroundImage()
+    if backgroundImageId ~= "" then
+        if preloadImage(backgroundImageId) then
+            local success, err = pcall(function()
+                backgroundImage.Image = backgroundImageId
+            end)
+            if success then
+                print("Applied background:", backgroundImageId)
+            else
+                warn("Failed to apply background:", err)
+            end
+        end
+    end
+
+    function window:CreateTab(tabConfig)
+        local tab = {}
+        local tabName = tabConfig.Name or "Tab"
+        local tabButton = Instance.new("TextButton")
+        tabButton.Size = UDim2.new(0, 110, 0, 40)
+        tabButton.Position = UDim2.new(0, 10 + (#tabList * 120), 0, 10)
+        tabButton.BackgroundColor3 = Color3.fromRGB(68, 68, 68)
+        tabButton.Text = tabName
+        tabButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+        tabButton.ZIndex = 22
+        tabButton.Parent = tabsFrame
+
+        local corner = Instance.new("UICorner")
+        corner.CornerRadius = UDim.new(0, 5)
+        corner.Parent = tabButton
+
+        local tabContent = Instance.new("ScrollingFrame")
+        tabContent.Size = UDim2.new(1, -20, 1, -110)
+        tabContent.Position = UDim2.new(0, 10, 0, 110)
+        tabContent.BackgroundTransparency = 1
+        tabContent.CanvasSize = UDim2.new(0, 0, 2, 0)
+        tabContent.ScrollBarThickness = 5
+        tabContent.ZIndex = 21
+        tabContent.Parent = mainContent
+        tabContent.Visible = false
+
+        table.insert(tabList, {button = tabButton, content = tabContent})
+
+        local function switchTab()
+            for _, tabData in ipairs(tabList) do
+                tabData.content.Visible = false
+                tabData.button.BackgroundColor3 = Color3.fromRGB(68, 68, 68)
+            end
+            tabContent.Visible = true
+            tabButton.BackgroundColor3 = Color3.fromRGB(0, 123, 255)
+        end
+
+        tabButton.MouseButton1Click:Connect(switchTab)
+        tabButton.TouchTap:Connect(switchTab)
+
+        if #tabList == 1 then
+            switchTab()
+        end
+
+        local yOffset = 0
+
+        function tab:CreateToggle(toggleConfig)
+            local toggleFrame = Instance.new("Frame")
+            toggleFrame.Size = UDim2.new(1, 0, 0, 50)
+            toggleFrame.Position = UDim2.new(0, 0, 0, yOffset)
+            toggleFrame.BackgroundTransparency = 1
+            toggleFrame.ZIndex = 21
+            toggleFrame.Parent = tabContent
+
+            local label = Instance.new("TextLabel")
+            label.Size = UDim2.new(0.7, 0, 1, 0)
+            label.Position = UDim2.new(0, 10, 0, 0)
+            label.BackgroundTransparency = 1
+            label.Text = toggleConfig.Name or "Toggle"
+            label.TextColor3 = Color3.fromRGB(255, 255, 255)
+            label.TextXAlignment = Enum.TextXAlignment.Left
+            label.ZIndex = 21
+            label.Parent = toggleFrame
+
+            local toggleButton = Instance.new("TextButton")
+            toggleButton.Size = UDim2.new(0, 50, 0, 25)
+            toggleButton.Position = UDim2.new(0.85, 0, 0.25, 0)
+            toggleButton.BackgroundColor3 = Color3.fromRGB(200, 200, 200)
+            toggleButton.Text = ""
+            toggleButton.ZIndex = 21
+            toggleButton.Parent = toggleFrame
+
+            local toggleCircle = Instance.new("Frame")
+            toggleCircle.Size = UDim2.new(0, 20, 0, 20)
+            toggleCircle.Position = UDim2.new(0, 2, 0, 2)
+            toggleCircle.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+            toggleCircle.BorderSizePixel = 0
+            toggleCircle.ZIndex = 21
+            toggleCircle.Parent = toggleButton
+
+            local corner = Instance.new("UICorner")
+            corner.CornerRadius = UDim.new(1, 0)
+            corner.Parent = toggleButton
+            corner:Clone().Parent = toggleCircle
+
+            local toggleFlag = toggleConfig.Flag or toggleConfig.Name or "UnnamedToggle"
+            local isToggled = toggleStates[toggleFlag] or false
+
+            if isToggled then
+                toggleButton.BackgroundColor3 = Color3.fromRGB(76, 175, 80)
+                toggleCircle.Position = UDim2.new(0.5, 2, 0, 2)
+            end
+
+            local function toggle()
+                isToggled = not isToggled
+                local tweenInfo = TweenInfo.new(0.3, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut)
+                local tween
+                if isToggled then
+                    toggleButton.BackgroundColor3 = Color3.fromRGB(76, 175, 80)
+                    tween = TweenService:Create(toggleCircle, tweenInfo, {Position = UDim2.new(0.5, 2, 0, 2)})
+                else
+                    toggleButton.BackgroundColor3 = Color3.fromRGB(200, 200, 200)
+                    tween = TweenService:Create(toggleCircle, tweenInfo, {Position = UDim2.new(0, 2, 0, 2)})
+                end
+                tween:Play()
+
+                toggleStates[toggleFlag] = isToggled
+                saveToggleStates()
+
+                if toggleConfig.Callfunction then
+                    pcall(toggleConfig.Callfunction, isToggled)
+                end
+            end
+
+            toggleButton.MouseButton1Click:Connect(toggle)
+            toggleButton.TouchTap:Connect(toggle)
+
+            table.insert(toggles, {isToggled = isToggled, callfunction = toggleConfig.Callfunction})
+
+            yOffset = yOffset + 60
+            tabContent.CanvasSize = UDim2.new(0, 0, 0, yOffset)
+        end
+
+        function tab:CreateBackgroundChanger()
+            tab:CreateInput({
+                Name = "Background Image ID",
+                Flag = "BackgroundImage",
+                Default = "",
+                Callback = function(value)
+                    if value:match("^rbxassetid://%d+$") then
+                        if preloadImage(value) then
+                            local success, err = pcall(function()
+                                backgroundImage.Image = value
+                            end)
+                            if success then
+                                saveBackgroundImage(value)
+                                backgroundImage.Visible = true
+                                print("Applied background:", value)
+                            else
+                                warn("Failed to apply background:", err)
+                            end
+                        end
+                    else
+                        warn("Invalid image ID format")
+                    end
+                end
+            })
+        end
+
+        function tab:CreateDecalChanger()
+            tab:CreateInput({
+                Name = "Decal Item ID",
+                Flag = "DecalItemID",
+                Default = "",
+                Callback = function(value)
+                    if value:match("^%d+$") then
+                        local success, imageId = pcall(function()
+                            local assetInfo = game:GetService("MarketplaceService"):GetProductInfo(tonumber(value))
+                            if assetInfo.AssetTypeId == 13 then
+                                return "rbxassetid://" .. assetInfo.AssetId
+                            end
+                        end)
+                        if success and imageId then
+                            if preloadImage(imageId) then
+                                local success, err = pcall(function()
+                                    backgroundImage.Image = imageId
+                                end)
+                                if success then
+                                    saveBackgroundImage(imageId)
+                                    backgroundImage.Visible = true
+                                    print("Applied background from Decal:", imageId)
+                                else
+                                    warn("Failed to apply background:", err)
+                                end
+                            end
+                        else
+                            warn("Invalid Decal ID")
+                        end
+                    else
+                        warn("Invalid Decal ID format")
+                    end
+                end
+            })
+        end
+
+        function tab:CreateVideoChanger()
+            tab:CreateInput({
+                Name = "Video ID",
+                Flag = "VideoID",
+                Default = "",
+                Callback = function(value)
+                    warn("Video feature not supported in this version")
+                end
+            })
+        end
+
+        function tab:CreateInput(inputConfig)
+            local inputFrame = Instance.new("Frame")
+            inputFrame.Size = UDim2.new(1, 0, 0, 50)
+            inputFrame.Position = UDim2.new(0, 0, 0, yOffset)
+            inputFrame.BackgroundTransparency = 1
+            inputFrame.ZIndex = 21
+            inputFrame.Parent = tabContent
+
+            local label = Instance.new("TextLabel")
+            label.Size = UDim2.new(0.7, 0, 1, 0)
+            label.Position = UDim2.new(0, 10, 0, 0)
+            label.BackgroundTransparency = 1
+            label.Text = inputConfig.Name or "Input"
+            label.TextColor3 = Color3.fromRGB(255, 255, 255)
+            label.TextXAlignment = Enum.TextXAlignment.Left
+            label.ZIndex = 21
+            label.Parent = inputFrame
+
+            local textBox = Instance.new("TextBox")
+            textBox.Size = UDim2.new(0, 100, 0, 25)
+            textBox.Position = UDim2.new(0.85, -50, 0.25, 0)
+            textBox.BackgroundColor3 = Color3.fromRGB(68, 68, 68)
+            textBox.Text = inputConfig.Default or ""
+            textBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+            textBox.ClearTextOnFocus = false
+            textBox.ZIndex = 21
+            textBox.Parent = inputFrame
+
+            local corner = Instance.new("UICorner")
+            corner.CornerRadius = UDim.new(0, 5)
+            corner.Parent = textBox
+
+            local inputFlag = inputConfig.Flag or inputConfig.Name or "UnnamedInput"
+            textBox.Text = toggleStates[inputFlag] or inputConfig.Default or ""
+
+            textBox.FocusLost:Connect(function(enterPressed)
+                if enterPressed then
+                    toggleStates[inputFlag] = textBox.Text
+                    saveToggleStates()
+                    if inputConfig.Callback then
+                        pcall(inputConfig.Callback, textBox.Text)
+                    end
+                end
+            end)
+
+            yOffset = yOffset + 60
+            tabContent.CanvasSize = UDim2.new(0, 0, 0, yOffset)
+        end
+
+        return tab
+    end
+
+    return window
+end
+
+print("Gghiza07UI loaded successfully")
+return Gghiza07UI
